@@ -269,7 +269,7 @@ export function createBot(config) {
   }));
 
   // 通用对话历史处理器
-  const historyHandler = wrapHandler(async (ctx, includeAssistant = false) => {
+  const historyHandler = async (ctx, includeAssistant = false) => {
     const session = getActiveSession();
     if (!session) {
       await safeReply(ctx, "❌ 没有活跃会话");
@@ -309,13 +309,12 @@ export function createBot(config) {
       await safeReply(
         ctx,
         `❌ 无法读取对话记录或对话记录为空\n\n` +
-        `📁 路径: \`${escapeMarkdownV2(transcriptPath)}\`\n` +
-        `🔗 Session ID: \`${escapeMarkdownV2(session.claudeSessionId)}\`\n\n` +
+        `📁 路径: ${transcriptPath}\n` +
+        `🔗 Session ID: ${session.claudeSessionId}\n\n` +
         `请检查:\n` +
-        `1\. 文件是否存在\n` +
-        `2\. Session ID 是否正确\n` +
-        `3\. 是否有对话记录`,
-        { parse_mode: "MarkdownV2" }
+        `1. 文件是否存在\n` +
+        `2. Session ID 是否正确\n` +
+        `3. 是否有对话记录`
       );
       return;
     }
@@ -395,9 +394,9 @@ export function createBot(config) {
 
     // 如果没有发送任何消息（理论上不会发生），发送一个提示
     if (batchCount === 0) {
-      await safeReply(ctx, "❌ 没有可显示的对话内容", { parse_mode: "MarkdownV2" });
+      await safeReply(ctx, "❌ 没有可显示的对话内容");
     }
-  });
+  };
 
   bot.command("history", wrapHandler(async (ctx) => {
     await historyHandler(ctx, false); // 默认只显示用户消息

@@ -67,6 +67,9 @@ async function sendTelegramMessage(botToken, chatId, text, parseMode = "HTML") {
   const messages = text.length > maxLen ? splitMessage(text, maxLen) : [text];
 
   for (const msg of messages) {
+    let success = false;
+
+    // 第一次尝试：带格式发送
     try {
       const response = await fetch(
         `https://api.telegram.org/bot${botToken}/sendMessage`,
@@ -81,13 +84,18 @@ async function sendTelegramMessage(botToken, chatId, text, parseMode = "HTML") {
         }
       );
 
-      if (!response.ok) {
+      if (response.ok) {
+        success = true;
+      } else {
         const errorText = await response.text();
         console.error(`❌ Telegram API error (${parseMode}): ${response.status} ${response.statusText}`, errorText);
       }
     } catch (err) {
       console.error(`❌ Fetch error (${parseMode}):`, err);
+    }
 
+    // 第一次失败时，尝试纯文本发送
+    if (!success) {
       try {
         const response2 = await fetch(
           `https://api.telegram.org/bot${botToken}/sendMessage`,

@@ -9,7 +9,7 @@ import { existsSync, openSync, fstatSync, readSync, closeSync, readFileSync } fr
  * @param {string} transcriptPath - transcript.jsonl 文件路径
  * @param {number} count - 要获取的对话数量
  * @param {boolean} includeAssistant - 是否包含 assistant 回复（默认 false）
- * @returns {Array|null>} - 对话数组，格式:
+ * @returns {Array|null} - 对话数组，格式:
  *   - includeAssistant=false: [{ user: string, timestamp: string }]
  *   - includeAssistant=true: [{ user: string, assistant: string, timestamp: string }]
  */
