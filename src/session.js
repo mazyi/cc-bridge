@@ -28,6 +28,7 @@ export function saveState(state) {
 function defaultState() {
   return {
     activeSessionId: null,
+    activeChannel: null,  // 当前活跃渠道类型 (telegram, feishu 等)
     nextId: 1,
     sessions: [],
   };
@@ -77,6 +78,24 @@ export function setActiveSession(id) {
   const session = state.sessions.find((s) => s.id === id);
   if (!session || session.status === "stopped") return false;
   state.activeSessionId = id;
+  saveState(state);
+  return true;
+}
+
+/**
+ * 获取当前活跃渠道
+ */
+export function getActiveChannel() {
+  const state = loadState();
+  return state.activeChannel || null;
+}
+
+/**
+ * 设置当前活跃渠道
+ */
+export function setActiveChannel(channelType) {
+  const state = loadState();
+  state.activeChannel = channelType;
   saveState(state);
   return true;
 }
