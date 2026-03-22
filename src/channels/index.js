@@ -50,6 +50,6 @@ export function listAvailableChannels() {
 
 // 导出单个渠道类，方便直接导入
 export { TelegramChannel, sendTelegramMessageRaw } from "./telegram.js";
-export { FeishuChannel, FeishuCardBuilder, createFeishuCard, sendFeishuMessage } from "./feishu.js";
+export { FeishuChannel, sendFeishuMessage } from "./feishu.js";
 export { BaseChannel } from "./base.js";
-export { MessageFormatter, escapeHtml, escapeMarkdownV2, unescapeJson } from "./format.js";
+export { MessageFormatter, escapeHtml, escapeMarkdownV2, unescapeJson, splitMessage } from "./format.js";

@@ -47,6 +47,30 @@ export function unescapeJson(s) {
 }
 
 /**
+ * 分割长消息（用于消息发送）
+ * @param {string} text - 要分割的文本
+ * @param {number} maxLen - 最大长度
+ * @returns {string[]} 分割后的消息数组
+ */
+export function splitMessage(text, maxLen) {
+  const parts = [];
+  let remaining = text;
+  while (remaining.length > 0) {
+    if (remaining.length <= maxLen) {
+      parts.push(remaining);
+      break;
+    }
+    let splitIdx = remaining.lastIndexOf("\n", maxLen);
+    if (splitIdx < maxLen * 0.5) {
+      splitIdx = maxLen;
+    }
+    parts.push(remaining.slice(0, splitIdx));
+    remaining = remaining.slice(splitIdx);
+  }
+  return parts;
+}
+
+/**
  * 消息格式化器 - 根据目标格式生成消息
  */
 export class MessageFormatter {

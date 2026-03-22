@@ -23,6 +23,7 @@ import {
   checkTmux,
   tmuxSessionExists,
   tmuxSendSpecialKey,
+  waitForScreenContent,
 } from "./tmux.js";
 import { parseRecentConversations } from "./transcript.js";
 import { homedir } from "os";
@@ -560,53 +561,6 @@ async function handleMessage(text, ctx) {
 
 // ========== 回调处理器 ==========
 
-async function handlePermissionCallback(data, ctx) {
-  const chatId = ctx.chatId;
-  const flow = newSessionFlows.get(chatId);
-  if (!flow || flow.step !== "permission") {
-    await ctx.answerCallback?.("会话已过期");
-    return;
-  }
-
-  flow.permissionMode = data === "perm:auto" ? "auto" : "confirm";
-  flow.step = "name";
-  await ctx.answerCallback?.();
-  await ctx.editMessage(
-    `🔐 权限模式: ${flow.permissionMode === "auto" ? "无确认" : "需确认"}\n\n📝 请输入会话名 (可选，发送 <code>-</code> 跳过):`,
-    { parse_mode: "HTML" }
-  );
-}
-
-async function handleCloseConfirm(data, ctx) {
-  const id = parseInt(data.split(":")[1], 10);
-  const sessions = listAllSessions();
-  const session = sessions.find((s) => s.id === id);
-
-  if (!session) {
-    await ctx.answerCallback?.("❌ 会话不存在");
-    await ctx.editMessage?.(`❌ 会话 #${id} 不存在或已被关闭`);
-    return;
-  }
-
-  if (tmuxSessionExists(session.tmuxName)) {
-    killTmuxSession(session.tmuxName);
-  }
-  closeSession(id);
-
-  await ctx.answerCallback?.("✅ 已关闭");
-  await ctx.editMessage?.(
-    `✅ 会话 #${id} 已关闭\n\n` +
-    `🖥 tmux session "${session.tmuxName}" 已终止\n` +
-    `📋 已从会话列表中移除`
-  );
-}
-
-async function handleCloseCancel(data, ctx) {
-  const id = parseInt(data.split(":")[1], 10);
-  await ctx.answerCallback?.("已取消");
-  await ctx.editMessage?.(`❌ 已取消关闭会话 #${id}`);
-}
-
 async function handleChannelCallback(data, ctx) {
   const channelType = data.split(":")[1];
 
@@ -694,23 +648,43 @@ async function handleNewSessionFlow(ctx, flow, text, chatId) {
 
           createTmuxSession(session.tmuxName, session.projectPath, session.permissionMode, claudeSessionId);
 
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+          // 等待 Claude 初始化并检查权限提示（仅 auto 模式）
+          if (session.permissionMode === "auto") {
+            // 等待权限提示出现，最多 15 秒
+            const permissionPatterns = [
+              /Would you like to proceed\?/i,
+              /allow.*access/i,
+              /permission/i,
+              /确认.*权限/i,
+              /允许.*访问/i,
+            ];
 
-          try {
-            if (session.permissionMode === "auto") {
-              tmuxSendSpecialKey(session.tmuxName, "Down");
-              await new Promise((resolve) => setTimeout(resolve, 300));
-              tmuxSendSpecialKey(session.tmuxName, "Enter");
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-            } else {
-              await new Promise((resolve) => setTimeout(resolve, 2000));
+            let detected = false;
+            for (const pattern of permissionPatterns) {
+              const found = await waitForScreenContent(session.tmuxName, pattern, 15000);
+              if (found) {
+                detected = true;
+                // 发送 Down+Enter 选择"始终允许"
+                tmuxSendSpecialKey(session.tmuxName, "Down");
+                await new Promise(resolve => setTimeout(resolve, 300));
+                tmuxSendSpecialKey(session.tmuxName, "Enter");
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                break;
+              }
             }
 
-            tmuxSendSpecialKey(session.tmuxName, "Enter");
-            await new Promise((resolve) => setTimeout(resolve, 500));
-          } catch (err) {
-            console.error("❌ 启动 Claude 时出错:", err);
+            // 如果15秒内没检测到权限提示，直接继续（可能没有权限提示或已自动跳过）
+            if (!detected) {
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          } else {
+            // confirm 模式：给更多时间让用户手动处理
+            await new Promise(resolve => setTimeout(resolve, 4000));
           }
+
+          // 发送 Enter 激活 Claude 会话
+          tmuxSendSpecialKey(session.tmuxName, "Enter");
+          await new Promise(resolve => setTimeout(resolve, 500));
 
           updateSession(session.id, { status: "active" });
         } catch (err) {

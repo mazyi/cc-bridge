@@ -4,7 +4,7 @@
 
 import { Bot, InlineKeyboard } from "grammy";
 import { BaseChannel } from "./base.js";
-import { MessageFormatter, escapeHtml, escapeMarkdownV2 } from "./format.js";
+import { MessageFormatter, escapeHtml, escapeMarkdownV2, splitMessage } from "./format.js";
 
 // 导出原始发送函数供 hook 使用
 export async function sendTelegramMessageRaw(botToken, chatId, text, parseMode = "HTML") {
@@ -62,24 +62,6 @@ export async function sendTelegramMessageRaw(botToken, chatId, text, parseMode =
       }
     }
   }
-}
-
-function splitMessage(text, maxLen) {
-  const parts = [];
-  let remaining = text;
-  while (remaining.length > 0) {
-    if (remaining.length <= maxLen) {
-      parts.push(remaining);
-      break;
-    }
-    let splitIdx = remaining.lastIndexOf("\n", maxLen);
-    if (splitIdx < maxLen * 0.5) {
-      splitIdx = maxLen;
-    }
-    parts.push(remaining.slice(0, splitIdx));
-    remaining = remaining.slice(splitIdx);
-  }
-  return parts;
 }
 
 export class TelegramChannel extends BaseChannel {
@@ -263,20 +245,6 @@ export class TelegramChannel extends BaseChannel {
   // ========== 内部方法 ==========
 
   /**
-   * 创建内联键盘 (供命令处理器使用)
-   */
-  createInlineKeyboard() {
-    return new InlineKeyboard();
-  }
-
-  /**
-   * 静态方法：创建内联键盘
-   */
-  static createInlineKeyboard() {
-    return new InlineKeyboard();
-  }
-
-  /**
    * 包装处理器，添加错误处理
    */
   wrapHandler(handler) {
@@ -424,27 +392,6 @@ export class TelegramChannel extends BaseChannel {
         }
       }
     }
-  }
-
-  /**
-   * 分割长消息
-   */
-  splitMessage(text, maxLen) {
-    const parts = [];
-    let remaining = text;
-    while (remaining.length > 0) {
-      if (remaining.length <= maxLen) {
-        parts.push(remaining);
-        break;
-      }
-      let splitIdx = remaining.lastIndexOf("\n", maxLen);
-      if (splitIdx < maxLen * 0.5) {
-        splitIdx = maxLen;
-      }
-      parts.push(remaining.slice(0, splitIdx));
-      remaining = remaining.slice(splitIdx);
-    }
-    return parts;
   }
 }
 

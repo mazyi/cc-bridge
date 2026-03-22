@@ -134,6 +134,50 @@ export function killTmuxSession(name) {
   }
 }
 
+/**
+ * 等待 tmux 屏幕内容匹配指定模式
+ * @param {string} name - tmux session name
+ * @param {RegExp|string} pattern - 匹配模式（正则或字符串）
+ * @param {number} timeout - 超时时间（毫秒）
+ * @param {number} interval - 检查间隔（毫秒，默认200）
+ * @returns {Promise<boolean>} - 是否在超时前匹配到
+ */
+export function waitForScreenContent(name, pattern, timeout, interval = 200) {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+
+    const check = () => {
+      try {
+        const output = tmuxCapture(name, 50); // 捕获最近50行
+        const content = output || "";
+
+        let matched = false;
+        if (pattern instanceof RegExp) {
+          matched = pattern.test(content);
+        } else {
+          matched = content.includes(pattern);
+        }
+
+        if (matched) {
+          resolve(true);
+          return;
+        }
+      } catch (e) {
+        // 忽略捕获错误，继续尝试
+      }
+
+      if (Date.now() - startTime >= timeout) {
+        resolve(false);
+        return;
+      }
+
+      setTimeout(check, interval);
+    };
+
+    check();
+  });
+}
+
 function shellEscape(s) {
   return `'${s.replace(/'/g, "'\\''")}'`;
 }
