@@ -203,7 +203,7 @@ async function handleClose(ctx) {
   );
 
   // 设置待确认状态，等待用户回复
-  pendingCloseConfirm.set(chatId, id);
+  pendingCloseConfirm.set(ctx.chatId, id);
 }
 
 async function handleStatus(ctx) {
